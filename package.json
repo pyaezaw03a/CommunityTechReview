@@ -1,0 +1,21 @@
+{
+  "name": "gadgetpulse-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build",
+    "test": "npm --workspace backend test",
+    "lint": "npm --workspace frontend run lint",
+    "frontend:dev": "npm --workspace frontend run dev",
+    "frontend:build": "npm --workspace frontend run build",
+    "frontend:lint": "npm --workspace frontend run lint",
+    "frontend:start": "npm --workspace frontend run start",
+    "backend:dev": "npm --workspace backend run dev",
+    "backend:start": "npm --workspace backend run start"
+  }
+}

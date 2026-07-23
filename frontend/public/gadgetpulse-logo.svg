@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="8" fill="#FF6A00"/>
+  <path d="M14 36c6-10 12-10 18 0 6-10 12-10 18 0" stroke="#FFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="32" y="50" fill="#FFF" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" text-anchor="middle">GadgetPulse</text>
+</svg>

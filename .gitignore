@@ -1,0 +1,15 @@
+.next/
+node_modules/
+.pnpm-store/
+.wrangler/
+dist/
+out/
+build/
+!frontend/build/
+!frontend/build/**
+.env
+.env*.local
+*.log
+*.tsbuildinfo
+pnpm-debug.log*
+yarn.lock
