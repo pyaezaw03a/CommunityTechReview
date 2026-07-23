@@ -23,7 +23,13 @@ export function ProductDetail({ slug }: { slug: string }) {
   return (
     <div className="mx-auto grid max-w-[1320px] gap-8 px-4 py-10 sm:px-6 lg:px-8">
       <section className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
-        <ProductGlyph category={product.category} accent={product.accent} className="min-h-72" />
+        <ProductGlyph
+          category={product.category}
+          accent={product.accent}
+          photoUrl={product.photoUrl}
+          productName={product.name}
+          className="min-h-72"
+        />
         <div className="flex flex-col justify-between gap-8 border border-ink bg-white p-6 sm:p-8">
           <div>
             <p className="text-xs font-black uppercase text-signal">{product.category}</p>

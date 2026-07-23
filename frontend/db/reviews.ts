@@ -1,9 +1,9 @@
-import { env } from "cloudflare:workers";
-
-import type { CreateReviewInput, Review } from "@/data/domain";
+import type { CreateReviewInput, Review, ReviewStatus } from "@/data/domain";
+import { getDatabase, getUploadsBucket } from "@/db/database";
 
 type ReviewRow = {
   id: string;
+  status: ReviewStatus;
   user_id: string;
   product_slug: string;
   product_name: string;
@@ -17,44 +17,11 @@ type ReviewRow = {
   date: string;
   ownership: string;
   category: string;
+  photo_key: string | null;
+  photo_name: string | null;
+  photo_type: string | null;
+  photo_size: number | null;
 };
-
-let schemaReady = false;
-
-async function getDatabase() {
-  const database = env.DB;
-  if (!database) throw new Error("The review database is unavailable.");
-
-  if (!schemaReady) {
-    await database.batch([
-      database.prepare(`
-        CREATE TABLE IF NOT EXISTS reviews (
-          id TEXT PRIMARY KEY NOT NULL,
-          user_id TEXT NOT NULL,
-          product_slug TEXT NOT NULL,
-          product_name TEXT NOT NULL,
-          username TEXT NOT NULL,
-          rating REAL NOT NULL,
-          category_ratings TEXT NOT NULL,
-          title TEXT NOT NULL,
-          body TEXT NOT NULL,
-          pros TEXT NOT NULL,
-          cons TEXT NOT NULL,
-          date TEXT NOT NULL,
-          ownership TEXT NOT NULL,
-          category TEXT NOT NULL
-        )
-      `),
-      database.prepare("CREATE INDEX IF NOT EXISTS reviews_product_slug_idx ON reviews (product_slug)"),
-      database.prepare("CREATE INDEX IF NOT EXISTS reviews_username_idx ON reviews (username)"),
-      database.prepare("CREATE INDEX IF NOT EXISTS reviews_category_idx ON reviews (category)"),
-      database.prepare("CREATE INDEX IF NOT EXISTS reviews_date_idx ON reviews (date)")
-    ]);
-    schemaReady = true;
-  }
-
-  return database;
-}
 
 function parseJson<T>(value: string): T {
   return JSON.parse(value) as T;
@@ -63,6 +30,7 @@ function parseJson<T>(value: string): T {
 function rowToReview(row: ReviewRow): Review {
   return {
     id: row.id,
+    status: row.status,
     userId: row.user_id,
     productSlug: row.product_slug,
     productName: row.product_name,
@@ -75,11 +43,14 @@ function rowToReview(row: ReviewRow): Review {
     cons: parseJson<string[]>(row.cons),
     date: row.date,
     ownership: row.ownership,
-    category: row.category as Review["category"]
+    category: row.category as Review["category"],
+    ...(row.photo_key ? { photoUrl: `/api/reviews/${encodeURIComponent(row.id)}/photo` } : {})
   };
 }
 
 export async function listReviews(filters: {
+  status?: ReviewStatus;
+  userId?: string;
   productSlug?: string;
   username?: string;
   category?: string;
@@ -89,6 +60,14 @@ export async function listReviews(filters: {
   const clauses: string[] = [];
   const values: Array<string | number> = [];
 
+  if (filters.status) {
+    clauses.push("status = ?");
+    values.push(filters.status);
+  }
+  if (filters.userId) {
+    clauses.push("user_id = ?");
+    values.push(filters.userId);
+  }
   if (filters.productSlug) {
     clauses.push("product_slug = ?");
     values.push(filters.productSlug);
@@ -111,38 +90,96 @@ export async function listReviews(filters: {
   return result.results.map(rowToReview);
 }
 
-export async function createReview(input: CreateReviewInput): Promise<Review> {
+export async function createReview(input: CreateReviewInput, photo?: File): Promise<Review> {
   const database = await getDatabase();
+  const id = `review-${crypto.randomUUID()}`;
+  const photoKey = photo ? `reviews/${id}/${crypto.randomUUID()}` : null;
   const review: Review = {
     ...input,
-    id: `review-${crypto.randomUUID()}`,
-    date: new Date().toISOString()
+    id,
+    status: "under_review",
+    date: new Date().toISOString(),
+    ...(photoKey ? { photoUrl: `/api/reviews/${encodeURIComponent(id)}/photo` } : {})
   };
 
-  await database
-    .prepare(`
-      INSERT INTO reviews (
-        id, user_id, product_slug, product_name, username, rating,
-        category_ratings, title, body, pros, cons, date, ownership, category
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .bind(
-      review.id,
-      review.userId,
-      review.productSlug,
-      review.productName,
-      review.username,
-      review.rating,
-      JSON.stringify(review.categoryRatings),
-      review.title,
-      review.body,
-      JSON.stringify(review.pros),
-      JSON.stringify(review.cons),
-      review.date,
-      review.ownership,
-      review.category
-    )
-    .run();
+  if (photo && photoKey) {
+    await getUploadsBucket().put(photoKey, photo.stream(), {
+      httpMetadata: { contentType: photo.type },
+      customMetadata: {
+        originalName: photo.name,
+        reviewId: review.id
+      }
+    });
+  }
+
+  try {
+    await database
+      .prepare(`
+        INSERT INTO reviews (
+          id, status, user_id, product_slug, product_name, username, rating,
+          category_ratings, title, body, pros, cons, date, ownership, category,
+          photo_key, photo_name, photo_type, photo_size
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        review.id,
+        review.status,
+        review.userId,
+        review.productSlug,
+        review.productName,
+        review.username,
+        review.rating,
+        JSON.stringify(review.categoryRatings),
+        review.title,
+        review.body,
+        JSON.stringify(review.pros),
+        JSON.stringify(review.cons),
+        review.date,
+        review.ownership,
+        review.category,
+        photoKey,
+        photo?.name ?? null,
+        photo?.type ?? null,
+        photo?.size ?? null
+      )
+      .run();
+  } catch (error) {
+    if (photoKey) await getUploadsBucket().delete(photoKey).catch(() => undefined);
+    throw error;
+  }
 
   return review;
+}
+
+export async function getReviewPhoto(id: string) {
+  const database = await getDatabase();
+  return database
+    .prepare(`
+      SELECT id, status, user_id, photo_key, photo_name, photo_type, photo_size
+      FROM reviews
+      WHERE id = ?
+    `)
+    .bind(id)
+    .first<{
+      id: string;
+      status: ReviewStatus;
+      user_id: string;
+      photo_key: string | null;
+      photo_name: string | null;
+      photo_type: string | null;
+      photo_size: number | null;
+    }>();
+}
+
+export async function updateReviewStatus(id: string, status: ReviewStatus): Promise<Review | null> {
+  const database = await getDatabase();
+  const result = await database
+    .prepare("UPDATE reviews SET status = ? WHERE id = ?")
+    .bind(status, id)
+    .run();
+
+  if (!result.meta.changes) return null;
+
+  const row = await database.prepare("SELECT * FROM reviews WHERE id = ?").bind(id).first<ReviewRow>();
+  return row ? rowToReview(row) : null;
 }

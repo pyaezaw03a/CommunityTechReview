@@ -100,8 +100,8 @@ export default function HomePage() {
           </div>
         </div>
       </section> : null}
-      {reviews.length ? <AnimatedSection className="border-b border-ink py-16 sm:py-24">
-        <div className="mx-auto grid max-w-[1320px] gap-8 px-4 sm:px-6 lg:px-8">
+      {reviews.length ? <AnimatedSection className="border-b border-ink py-12 sm:py-20 lg:py-24">
+        <div className="mx-auto grid min-w-0 max-w-[1320px] gap-8 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <SectionHeader
               kicker="Community Signals"
@@ -109,14 +109,16 @@ export default function HomePage() {
               copy="A dashboard-style readout of product strengths, real ownership patterns, and where buyers are finding the most confidence."
             />
           </div>
-          <div className="grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-            <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               {signalCards.map((card) => (
-                <article key={card.label} className="border border-ink bg-white p-5">
+                <article key={card.label} className="min-w-0 overflow-hidden border border-ink bg-white p-4 sm:p-5">
                   <Sparkles className="h-5 w-5 text-signal" aria-hidden="true" />
                   <p className="mt-8 text-xs font-black uppercase text-muted">{card.label}</p>
-                  <h3 className="mt-2 text-3xl font-black uppercase leading-none text-ink">{card.value}</h3>
-                  <p className="mt-3 text-sm text-muted">{card.detail}</p>
+                  <h3 className="mt-2 break-words text-2xl font-black uppercase leading-tight text-ink [overflow-wrap:anywhere] sm:text-3xl">
+                    {card.value}
+                  </h3>
+                  <p className="mt-3 break-words text-sm text-muted">{card.detail}</p>
                 </article>
               ))}
             </div>

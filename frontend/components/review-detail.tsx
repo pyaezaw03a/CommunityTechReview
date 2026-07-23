@@ -42,7 +42,13 @@ export function ReviewDetail({ id }: { id: string }) {
         <aside className="grid content-start gap-5">
           {product ? (
             <Link href={`/products/${product.slug}`} className="focus-ring block border border-ink bg-white hover:shadow-hard-sm">
-              <ProductGlyph category={product.category} accent={product.accent} className="h-56" />
+              <ProductGlyph
+                category={product.category}
+                accent={product.accent}
+                photoUrl={review.photoUrl ?? product.photoUrl}
+                productName={product.name}
+                className="h-56"
+              />
               <div className="border-t border-ink p-4">
                 <p className="text-xs font-black uppercase text-muted">{product.category}</p>
                 <h2 className="mt-1 text-2xl font-black uppercase leading-none text-ink">{product.name}</h2>

@@ -26,17 +26,19 @@ export function SentimentChart({ product, className, compact = false }: { produc
   ) as Record<(typeof metricLabels)[number][0], number>;
 
   return (
-    <div className={cn("border border-ink bg-white p-4", className)}>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
+    <div className={cn("min-w-0 overflow-hidden border border-ink bg-white p-4", className)}>
+      <div className="mb-4 flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <p className="text-xs font-black uppercase text-signal">Community Sentiment</p>
-          <h3 className={cn("font-black uppercase text-ink", compact ? "text-lg" : "text-2xl")}>
+          <h3 className={cn("break-words font-black uppercase leading-tight text-ink [overflow-wrap:anywhere]", compact ? "text-lg" : "text-xl sm:text-2xl")}>
             {product ? product.name : "All Gadgets"}
           </h3>
         </div>
-        <span className="border border-ink bg-paper px-2 py-1 text-xs font-black uppercase text-muted">User Reviews</span>
+        <span className="max-w-full shrink-0 border border-ink bg-paper px-2 py-1 text-center text-xs font-black uppercase text-muted">
+          User Reviews
+        </span>
       </div>
-      <div className="grid gap-3">
+      <div className="grid min-w-0 gap-3">
         {metricLabels.map(([key, label]) => {
           const value = values[key];
           if (!value) return null;

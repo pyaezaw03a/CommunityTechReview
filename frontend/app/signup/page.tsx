@@ -14,7 +14,7 @@ export default function SignupPage() {
         <p className="text-xs font-black uppercase text-signal">Create User Or Admin</p>
         <h1 className="mt-4 text-5xl font-black uppercase leading-[0.9] text-ink sm:text-6xl">Create Your GadgetPulse Account</h1>
         <p className="mt-5 text-lg leading-8 text-muted">
-          User accounts can publish reviews and save products. Admin accounts get a local dashboard for account and
+          User accounts can publish reviews and save products. Admin accounts get a shared dashboard for account and
           activity oversight.
         </p>
       </section>

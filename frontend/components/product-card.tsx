@@ -15,7 +15,13 @@ export function ProductCard({ product, compact = false }: { product: Product; co
 
   return (
     <Link href={`/products/${product.slug}`} className="focus-ring group grid min-w-72 border border-ink bg-white transition-all hover:-translate-y-1 hover:shadow-hard-md">
-      <ProductGlyph category={product.category} accent={product.accent} className={compact ? "h-24" : undefined} />
+      <ProductGlyph
+        category={product.category}
+        accent={product.accent}
+        photoUrl={product.photoUrl}
+        productName={product.name}
+        className={compact ? "h-24" : undefined}
+      />
       <div className="grid gap-4 border-t border-ink p-4">
         <div className="flex items-start justify-between gap-3">
           <div>

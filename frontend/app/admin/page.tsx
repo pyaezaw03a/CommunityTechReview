@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdminAccessGate } from "@/components/auth/admin-access-gate";
 import { AdminDashboard } from "@/components/auth/admin-dashboard";
 import { SectionHeader } from "@/components/section-header";
 
@@ -9,13 +10,15 @@ export const metadata: Metadata = {
 
 export default function AdminPage() {
   return (
-    <div className="mx-auto grid max-w-[1320px] gap-8 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto grid max-w-[1180px] gap-8">
       <SectionHeader
-        kicker="Admin"
-        title="GadgetPulse Admin Dashboard"
-        copy="A role-aware admin surface for account and platform activity."
+        kicker="Admin Workspace"
+        title="Dashboard Overview"
+        copy="Monitor real community reviews, accounts, and platform activity without leaving the admin workspace."
       />
-      <AdminDashboard />
+      <AdminAccessGate>
+        <AdminDashboard />
+      </AdminAccessGate>
     </div>
   );
 }

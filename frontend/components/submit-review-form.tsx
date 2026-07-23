@@ -1,12 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Send } from "lucide-react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ImagePlus, Send, X } from "lucide-react";
 
-import { categories, type Category } from "@/data/domain";
+import { categories, type Category, type Review } from "@/data/domain";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useReviews } from "@/components/reviews-provider";
+import { ReviewStatusBadge } from "@/components/review-status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,8 +57,11 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
   const { createReview, products } = useReviews();
   const [form, setForm] = useState<FormState>(() => createInitialState());
   const [errors, setErrors] = useState<string[]>([]);
-  const [success, setSuccess] = useState(false);
+  const [submittedReview, setSubmittedReview] = useState<Review | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const reviewUsername = currentUser?.username ?? "";
   const initialProduct = products.find((product) => product.slug === initialProductSlug);
   const selectedProduct = useMemo(
@@ -77,11 +82,43 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
 
   function updateField<T extends keyof FormState>(field: T, value: FormState[T]) {
     setForm((current) => ({ ...current, [field]: value }));
-    setSuccess(false);
+    setSubmittedReview(null);
   }
 
   function parseTags(value: string) {
-    return value.split(/[,\n]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5);
+    return value.split(/[,\n]/).map((tag) => tag.trim()).filter(Boolean);
+  }
+
+  function clearPhoto() {
+    setPhoto(null);
+    setPhotoPreview("");
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  }
+
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      clearPhoto();
+      return;
+    }
+
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowedTypes.has(file.type)) {
+      setErrors(["Product photos must be JPG, PNG, or WebP images."]);
+      clearPhoto();
+      return;
+    }
+    if (file.size > 5_000_000) {
+      setErrors(["Product photos must be smaller than 5MB."]);
+      clearPhoto();
+      return;
+    }
+
+    setPhoto(file);
+    setErrors([]);
+    const reader = new FileReader();
+    reader.onload = () => setPhotoPreview(String(reader.result));
+    reader.readAsDataURL(file);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -89,8 +126,8 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
     const nextErrors = [
       !form.productName.trim() ? "Add a product name." : "",
       !form.ownership.trim() ? "Add your ownership duration." : "",
-      form.title.trim().length < 8 ? "Use a review title with at least 8 characters." : "",
-      form.body.trim().length < 40 ? "Write at least 40 characters about your ownership experience." : "",
+      !form.title.trim() ? "Add a review title." : "",
+      !form.body.trim() ? "Write your review." : "",
       !parseTags(form.pros).length ? "Add at least one pro." : "",
       !parseTags(form.cons).length ? "Add at least one con." : ""
     ].filter(Boolean);
@@ -102,28 +139,32 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
 
     setSubmitting(true);
     try {
-      await createReview({
-        userId: currentUser.id,
-        productSlug: selectedProduct?.slug ?? `custom-${slugify(cleanProductName)}`,
-        productName: selectedProduct?.name ?? cleanProductName,
-        username: reviewUsername,
-        rating: Number(form.overallRating),
-        categoryRatings: {
-          performance: Number(form.performance),
-          camera: Number(form.camera),
-          battery: Number(form.battery),
-          display: Number(form.display),
-          value: Number(form.value)
+      const review = await createReview(
+        {
+          userId: currentUser.id,
+          productSlug: selectedProduct?.slug ?? `custom-${slugify(cleanProductName)}`,
+          productName: selectedProduct?.name ?? cleanProductName,
+          username: reviewUsername,
+          rating: Number(form.overallRating),
+          categoryRatings: {
+            performance: Number(form.performance),
+            camera: Number(form.camera),
+            battery: Number(form.battery),
+            display: Number(form.display),
+            value: Number(form.value)
+          },
+          title: form.title.trim(),
+          body: form.body.trim(),
+          pros: parseTags(form.pros),
+          cons: parseTags(form.cons),
+          ownership: form.ownership.trim(),
+          category: selectedProduct?.category ?? form.category
         },
-        title: form.title.trim(),
-        body: form.body.trim(),
-        pros: parseTags(form.pros),
-        cons: parseTags(form.cons),
-        ownership: form.ownership.trim(),
-        category: selectedProduct?.category ?? form.category
-      });
+        photo ?? undefined
+      );
       setForm(createInitialState(form.productName, selectedProduct?.category ?? form.category));
-      setSuccess(true);
+      clearPhoto();
+      setSubmittedReview(review);
       setErrors([]);
     } catch (requestError) {
       setErrors([(requestError as Error).message]);
@@ -146,13 +187,15 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5 border border-ink bg-white p-4 sm:p-6">
-      {success ? (
-        <div className="flex items-start gap-3 border border-olive bg-paper p-4 text-olive" role="status">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+      {submittedReview ? (
+        <div className="flex flex-wrap items-start justify-between gap-3 border border-amber-500 bg-amber-50 p-4" role="status">
           <div>
             <p className="font-black uppercase">Review submitted</p>
-            <p className="text-sm text-muted">Your review is now saved to the shared backend and appears in review feeds.</p>
+            <p className="mt-1 text-sm text-muted">
+              Your review is saved and waiting for admin approval. It will appear publicly only after approval.
+            </p>
           </div>
+          <ReviewStatusBadge status={submittedReview.status} />
         </div>
       ) : null}
       {errors.length ? (
@@ -187,6 +230,46 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
           </Select>
         </Field>
       </div>
+      <Field label="Product photo (optional)" htmlFor="product-photo">
+        <Input
+          ref={photoInputRef}
+          id="product-photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handlePhotoChange}
+        />
+        <p className="text-xs font-semibold text-muted">
+          Upload one clear JPG, PNG, or WebP photo up to 5MB. It will appear after admin approval.
+        </p>
+        {photoPreview ? (
+          <div className="relative mt-2 max-w-xl border border-ink bg-paper p-2">
+            <div className="relative h-72 w-full">
+              <Image
+                src={photoPreview}
+                alt="Product upload preview"
+                fill
+                unoptimized
+                sizes="576px"
+                className="object-contain"
+              />
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="absolute right-4 top-4 bg-white"
+              onClick={clearPhoto}
+              aria-label="Remove product photo"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <p className="mt-2 flex items-center gap-2 text-xs font-black uppercase text-muted">
+              <ImagePlus className="h-4 w-4 text-signal" aria-hidden="true" />
+              {photo?.name}
+            </p>
+          </div>
+        ) : null}
+      </Field>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Display username" htmlFor="username">
           <Input id="username" value={reviewUsername} readOnly aria-readonly="true" className="bg-paper" />
@@ -232,7 +315,7 @@ export function SubmitReviewForm({ initialProductSlug }: { initialProductSlug?: 
       </div>
       <Button type="submit" size="lg" className="justify-self-start" disabled={submitting}>
         <Send className="h-4 w-4" aria-hidden="true" />
-        {submitting ? "Publishing..." : "Submit Review"}
+        {submitting ? "Submitting..." : "Submit For Review"}
       </Button>
     </form>
   );

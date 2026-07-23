@@ -65,7 +65,13 @@ export function CompareMatrix({ left, right, cta = true }: { left: Product; righ
 function CompareProduct({ product }: { product: Product }) {
   return (
     <Link href={`/products/${product.slug}`} className="focus-ring grid gap-4 p-4 hover:bg-paper">
-      <ProductGlyph category={product.category} accent={product.accent} className="h-24" />
+      <ProductGlyph
+        category={product.category}
+        accent={product.accent}
+        photoUrl={product.photoUrl}
+        productName={product.name}
+        className="h-24"
+      />
       <div>
         {product.brand ? <p className="text-xs font-black uppercase text-muted">{product.brand}</p> : null}
         <h3 className="text-2xl font-black uppercase leading-none text-ink">{product.name}</h3>

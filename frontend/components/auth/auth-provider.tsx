@@ -1,18 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-import {
-  createUsername,
-  normalizeEmail,
-  validateSignup,
-  type AccountRole,
-  type AuthAccount,
-  type AuthResult,
-  type AuthSession
-} from "@/lib/auth";
+import type { AccountRole, AuthAccount, AuthResult } from "@/lib/auth";
 import { storageKeys } from "@/lib/storage-keys";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type SignupInput = {
   name: string;
@@ -23,99 +14,124 @@ type SignupInput = {
   adminCode?: string;
 };
 
+type LoginInput = {
+  email: string;
+  password: string;
+  role: AccountRole;
+  adminCode?: string;
+};
+
 type AuthContextValue = {
   accounts: AuthAccount[];
   currentUser: AuthAccount | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => AuthResult;
-  signup: (input: SignupInput) => AuthResult;
-  updateCurrentUser: (updates: Partial<Pick<AuthAccount, "name" | "username" | "avatarUrl">>) => AuthResult;
-  logout: () => void;
+  isLoading: boolean;
+  login: (input: LoginInput) => Promise<AuthResult>;
+  signup: (input: SignupInput) => Promise<AuthResult>;
+  updateCurrentUser: (
+    updates: Partial<Pick<AuthAccount, "name" | "username" | "avatarUrl">>
+  ) => Promise<AuthResult>;
+  logout: () => Promise<void>;
+};
+
+type SessionPayload = {
+  data: {
+    account: AuthAccount | null;
+    accounts: AuthAccount[];
+  };
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function parseResponse<T>(response: Response): Promise<T> {
+  const payload: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const errorPayload = payload as { error?: { message?: string } } | null;
+    throw new Error(errorPayload?.error?.message || "The account service could not complete this request.");
+  }
+  return payload as T;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [storedAccounts, setAccounts] = useLocalStorage<AuthAccount[]>(storageKeys.authAccounts, []);
-  const [session, setSession] = useLocalStorage<AuthSession | null>(storageKeys.authSession, null);
-  const accounts = useMemo(
-    () =>
-      storedAccounts.filter(
-        (account) =>
-          !["demo-user", "demo-admin"].includes(account.id) &&
-          !["user@gadgetpulse.local", "admin@gadgetpulse.local"].includes(normalizeEmail(account.email))
-      ),
-    [storedAccounts]
-  );
-  const currentUser = session ? accounts.find((account) => account.id === session.accountId) ?? null : null;
+  const [accounts, setAccounts] = useState<AuthAccount[]>([]);
+  const [currentUser, setCurrentUser] = useState<AuthAccount | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const applySession = useCallback((payload: SessionPayload) => {
+    setCurrentUser(payload.data.account);
+    setAccounts(payload.data.accounts);
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    const response = await fetch("/api/auth/session", { cache: "no-store" });
+    applySession(await parseResponse<SessionPayload>(response));
+  }, [applySession]);
 
   useEffect(() => {
-    if (accounts.length !== storedAccounts.length) {
-      setAccounts(accounts);
-      if (session && !accounts.some((account) => account.id === session.accountId)) setSession(null);
+    // These keys held the previous browser-only user/admin records. The D1-backed
+    // account service is authoritative now, so remove every legacy account/session.
+    window.localStorage.removeItem(storageKeys.authAccounts);
+    window.localStorage.removeItem(storageKeys.authSession);
+
+    void refreshSession()
+      .catch(() => {
+        setCurrentUser(null);
+        setAccounts([]);
+      })
+      .finally(() => setIsLoading(false));
+  }, [refreshSession]);
+
+  async function authenticate(action: "login" | "signup", input: LoginInput | SignupInput): Promise<AuthResult> {
+    try {
+      const response = await fetch(`/api/auth/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input)
+      });
+      const payload = await parseResponse<SessionPayload>(response);
+      applySession(payload);
+      return payload.data.account
+        ? { ok: true, account: payload.data.account }
+        : { ok: false, error: "The account session could not be created." };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
     }
-  }, [accounts, session, setAccounts, setSession, storedAccounts.length]);
-
-  function login(email: string, password: string): AuthResult {
-    const account = accounts.find(
-      (item) => normalizeEmail(item.email) === normalizeEmail(email) && item.password === password
-    );
-
-    if (!account) {
-      return { ok: false, error: "Email or password is incorrect." };
-    }
-
-    setSession({ accountId: account.id, signedInAt: new Date().toISOString() });
-    return { ok: true, account };
   }
 
-  function signup(input: SignupInput): AuthResult {
-    const error = validateSignup({ ...input, accounts });
-    if (error) return { ok: false, error };
-
-    const account: AuthAccount = {
-      id: `account-${Date.now()}`,
-      name: input.name.trim(),
-      username: createUsername(input.name, input.email),
-      email: normalizeEmail(input.email),
-      password: input.password,
-      role: input.role,
-      createdAt: new Date().toISOString()
-    };
-
-    setAccounts((current) => [...current, account]);
-    setSession({ accountId: account.id, signedInAt: new Date().toISOString() });
-    return { ok: true, account };
+  function login(input: LoginInput) {
+    return authenticate("login", input);
   }
 
-  function updateCurrentUser(updates: Partial<Pick<AuthAccount, "name" | "username" | "avatarUrl">>): AuthResult {
+  function signup(input: SignupInput) {
+    return authenticate("signup", input);
+  }
+
+  async function updateCurrentUser(
+    updates: Partial<Pick<AuthAccount, "name" | "username" | "avatarUrl">>
+  ): Promise<AuthResult> {
     if (!currentUser) return { ok: false, error: "Login before changing account settings." };
 
-    const cleanUsername = updates.username?.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
-    const cleanName = updates.name?.trim();
-    if (cleanName !== undefined && cleanName.length < 2) return { ok: false, error: "Display name must be at least 2 characters." };
-    if (cleanUsername !== undefined && cleanUsername.length < 2) return { ok: false, error: "Username must be at least 2 characters." };
-    if (
-      cleanUsername &&
-      accounts.some((account) => account.id !== currentUser.id && account.username.toLowerCase() === cleanUsername)
-    ) {
-      return { ok: false, error: "That username is already taken." };
+    try {
+      const response = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      const payload = await parseResponse<{ data: { account: AuthAccount } }>(response);
+      const updated = payload.data.account;
+      setCurrentUser(updated);
+      setAccounts((current) => current.map((account) => (account.id === updated.id ? updated : account)));
+      return { ok: true, account: updated };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
     }
-
-    const updatedAccount: AuthAccount = {
-      ...currentUser,
-      ...(cleanName !== undefined ? { name: cleanName } : {}),
-      ...(cleanUsername !== undefined ? { username: cleanUsername } : {}),
-      ...(updates.avatarUrl !== undefined ? { avatarUrl: updates.avatarUrl } : {})
-    };
-
-    setAccounts((current) => current.map((account) => (account.id === currentUser.id ? updatedAccount : account)));
-    return { ok: true, account: updatedAccount };
   }
 
-  function logout() {
-    setSession(null);
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    setCurrentUser(null);
+    setAccounts([]);
   }
 
   const value: AuthContextValue = {
@@ -123,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     isAuthenticated: Boolean(currentUser),
     isAdmin: currentUser?.role === "admin",
+    isLoading,
     login,
     signup,
     updateCurrentUser,
@@ -134,8 +151,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider.");
-  }
+  if (!context) throw new Error("useAuth must be used inside AuthProvider.");
   return context;
 }

@@ -27,6 +27,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [name, setName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [adminCode, setAdminCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const isLogin = mode === "login";
   const redirect = searchParams.get("redirect");
 
@@ -35,23 +36,18 @@ export function AuthForm({ mode }: AuthFormProps) {
     window.location.assign(target);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setSubmitting(true);
 
-    const result = isLogin
-      ? login(email, password)
-      : signup({
-          name,
-          email,
-          password,
-          confirmPassword,
-          role,
-          adminCode
-        });
+    const result = await (isLogin
+      ? login({ email, password, role, adminCode })
+      : signup({ name, email, password, confirmPassword, role, adminCode }));
 
     if (!result.ok) {
       setError(result.error);
+      setSubmitting(false);
       return;
     }
 
@@ -67,7 +63,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
           {isLogin
-            ? "Sign in with an account you created."
+            ? "Choose user or admin access, then sign in with the matching account."
             : "Create your account to publish real ownership reviews."}
         </p>
       </div>
@@ -106,38 +102,51 @@ export function AuthForm({ mode }: AuthFormProps) {
         </Field>
 
         {!isLogin ? (
-          <>
-            <Field label="Confirm password" htmlFor="confirm-password">
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                autoComplete="new-password"
-              />
-            </Field>
-            <Field label="Account type" htmlFor="role">
-              <Select id="role" value={role} onChange={(event) => setRole(event.target.value as AccountRole)}>
-                <option value="user">User account</option>
-                <option value="admin">Admin account</option>
-              </Select>
-            </Field>
-            {role === "admin" ? (
-              <Field label="Admin access code" htmlFor="admin-code">
-                <Input
-                  id="admin-code"
-                  value={adminCode}
-                  onChange={(event) => setAdminCode(event.target.value)}
-                />
-                <p className="text-xs font-semibold text-muted">An administrator must provide this code.</p>
-              </Field>
-            ) : null}
-          </>
+          <Field label="Confirm password" htmlFor="confirm-password">
+            <Input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              autoComplete="new-password"
+            />
+          </Field>
         ) : null}
 
-        <Button type="submit" size="lg">
+        <Field label={isLogin ? "Login type" : "Account type"} htmlFor="role">
+          <Select
+            id="role"
+            value={role}
+            onChange={(event) => {
+              setRole(event.target.value as AccountRole);
+              setAdminCode("");
+              setError("");
+            }}
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </Select>
+        </Field>
+
+        {role === "admin" ? (
+          <Field label="Admin access code" htmlFor="admin-code">
+            <Input
+              id="admin-code"
+              type="password"
+              value={adminCode}
+              onChange={(event) => setAdminCode(event.target.value)}
+              autoComplete="off"
+              required
+            />
+            <p className="text-xs font-semibold text-muted">
+              Required for both admin login and admin account creation.
+            </p>
+          </Field>
+        ) : null}
+
+        <Button type="submit" size="lg" disabled={submitting}>
           {isLogin ? <LockKeyhole className="h-4 w-4" aria-hidden="true" /> : <UserPlus className="h-4 w-4" aria-hidden="true" />}
-          {isLogin ? "Login" : "Sign Up"}
+          {submitting ? "Please wait..." : isLogin ? `Login As ${role === "admin" ? "Admin" : "User"}` : "Sign Up"}
         </Button>
       </form>
 

@@ -5,15 +5,9 @@ export type AuthAccount = {
   name: string;
   username: string;
   email: string;
-  password: string;
   role: AccountRole;
   avatarUrl?: string;
   createdAt: string;
-};
-
-export type AuthSession = {
-  accountId: string;
-  signedInAt: string;
 };
 
 export type AuthResult =
@@ -49,17 +43,10 @@ export function validateSignup(input: {
   confirmPassword: string;
   role: AccountRole;
   adminCode?: string;
-  accounts: AuthAccount[];
 }): string | null {
   if (input.name.trim().length < 2) return "Enter a display name.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(input.email))) return "Enter a valid email address.";
-  if (input.accounts.some((account) => normalizeEmail(account.email) === normalizeEmail(input.email))) {
-    return "An account with that email already exists.";
-  }
-  if (input.password.length < 6) return "Use at least 6 characters for the password.";
+  if (input.password.length < 8) return "Use at least 8 characters for the password.";
   if (input.password !== input.confirmPassword) return "Passwords do not match.";
-  if (input.role === "admin" && input.adminCode?.trim() !== adminAccessCode) {
-    return "Enter the admin access code to create an admin account.";
-  }
   return null;
 }

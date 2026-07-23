@@ -34,19 +34,16 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink bg-paper/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="focus-ring inline-flex min-w-0 items-center gap-3" aria-label="GadgetPulse home">
+      <div className="mx-auto flex h-20 max-w-[1320px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="focus-ring inline-flex min-w-0 items-center" aria-label="GadgetPulse home">
           <Image
-            src="/gadgetpulse-logo.png"
+            src="/logoremovebg.png"
             alt="GadgetPulse logo"
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0 rounded-sm object-contain"
+            width={224}
+            height={64}
+            unoptimized
+            className="h-16 w-44 shrink-0 object-cover object-center sm:w-56"
           />
-          <span className="grid min-w-0 leading-none">
-            <span className="truncate text-sm font-black uppercase text-ink">GadgetPulse</span>
-            <span className="truncate text-[10px] font-semibold uppercase text-muted">Real Feedback</span>
-          </span>
         </Link>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
           {links.map((link) => (
@@ -79,7 +76,7 @@ export function SiteHeader() {
                   {currentUser.name}
                 </Link>
               </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={logout} aria-label="Logout">
+              <Button type="button" size="sm" variant="ghost" onClick={() => void logout()} aria-label="Logout">
                 <LogOut className="h-4 w-4" aria-hidden="true" />
               </Button>
             </>
@@ -124,7 +121,7 @@ export function SiteHeader() {
                         <Link href="/account">{currentUser.name}</Link>
                       </Button>
                     </DialogClose>
-                    <Button type="button" variant="outline" className="w-full" onClick={logout}>
+                    <Button type="button" variant="outline" className="w-full" onClick={() => void logout()}>
                       Logout
                     </Button>
                   </>

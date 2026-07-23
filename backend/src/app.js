@@ -3,13 +3,13 @@ const { URL } = require("node:url");
 
 const { HttpError, readJson, sendJson } = require("./http");
 
-function createApp({ reviewService, allowedOrigin }) {
+function createApp({ reviewService, allowedOrigin, adminReviewCode }) {
   return http.createServer(async (request, response) => {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
 
     response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Content-Type,X-Admin-Access-Code");
+    response.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
     response.setHeader("Vary", "Origin");
 
     if (request.method === "OPTIONS") {
@@ -35,7 +35,19 @@ function createApp({ reviewService, allowedOrigin }) {
       }
 
       if (request.method === "GET" && url.pathname === "/api/reviews") {
+        const scope = url.searchParams.get("scope");
+        const isAdminScope = scope === "admin";
+        const isUserScope = scope === "user";
+        if (isAdminScope && request.headers["x-admin-access-code"] !== adminReviewCode) {
+          throw new HttpError(403, "A valid admin access code is required.");
+        }
+        const userId = isUserScope ? url.searchParams.get("userId")?.trim() : undefined;
+        if (isUserScope && !userId) {
+          throw new HttpError(422, "userId is required.");
+        }
         const reviews = await reviewService.list({
+          status: isAdminScope || isUserScope ? undefined : "published",
+          userId,
           productSlug: url.searchParams.get("productSlug") || undefined,
           username: url.searchParams.get("username") || undefined,
           category: url.searchParams.get("category") || undefined,
@@ -53,7 +65,17 @@ function createApp({ reviewService, allowedOrigin }) {
 
       const reviewMatch = url.pathname.match(/^\/api\/reviews\/([^/]+)$/);
       if (request.method === "GET" && reviewMatch) {
-        const review = await reviewService.get(decodeURIComponent(reviewMatch[1]));
+        const review = await reviewService.get(decodeURIComponent(reviewMatch[1]), { status: "published" });
+        sendJson(response, 200, { data: review });
+        return;
+      }
+
+      if (request.method === "PATCH" && reviewMatch) {
+        if (request.headers["x-admin-access-code"] !== adminReviewCode) {
+          throw new HttpError(403, "A valid admin access code is required.");
+        }
+        const payload = await readJson(request);
+        const review = await reviewService.moderate(decodeURIComponent(reviewMatch[1]), payload.status);
         sendJson(response, 200, { data: review });
         return;
       }

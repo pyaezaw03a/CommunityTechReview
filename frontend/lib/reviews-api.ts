@@ -1,4 +1,4 @@
-import type { CreateReviewInput, Review } from "@/data/domain";
+import type { CreateReviewInput, Review, ReviewStatus } from "@/data/domain";
 
 type ReviewListResponse = { data: Review[]; meta: { count: number } };
 type ReviewResponse = { data: Review };
@@ -18,11 +18,38 @@ export async function fetchReviews(signal?: AbortSignal) {
   return (await parseResponse<ReviewListResponse>(response)).data;
 }
 
-export async function postReview(input: CreateReviewInput) {
+export async function fetchUserReviews(signal?: AbortSignal) {
+  const search = new URLSearchParams({ scope: "user" });
+  const response = await fetch(`/api/reviews?${search.toString()}`, { signal, cache: "no-store" });
+  return (await parseResponse<ReviewListResponse>(response)).data;
+}
+
+export async function postReview(input: CreateReviewInput, photo?: File) {
+  const body = new FormData();
+  body.set("payload", JSON.stringify(input));
+  if (photo) body.set("photo", photo);
   const response = await fetch("/api/reviews", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input)
+    body
+  });
+  return (await parseResponse<ReviewResponse>(response)).data;
+}
+
+export async function fetchAdminReviews(signal?: AbortSignal) {
+  const response = await fetch("/api/reviews?scope=admin", {
+    signal,
+    cache: "no-store"
+  });
+  return (await parseResponse<ReviewListResponse>(response)).data;
+}
+
+export async function moderateReview(id: string, status: ReviewStatus) {
+  const response = await fetch(`/api/reviews/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ status })
   });
   return (await parseResponse<ReviewResponse>(response)).data;
 }

@@ -5,5 +5,6 @@ const rootDirectory = path.resolve(__dirname, "..");
 module.exports = {
   port: Number(process.env.PORT || 4000),
   reviewsFile: process.env.REVIEWS_FILE || path.join(rootDirectory, "data", "reviews.json"),
-  allowedOrigin: process.env.ALLOWED_ORIGIN || "http://localhost:3000"
+  allowedOrigin: process.env.ALLOWED_ORIGIN || "http://localhost:3000",
+  adminReviewCode: process.env.ADMIN_REVIEW_CODE || "PULSE-ADMIN"
 };

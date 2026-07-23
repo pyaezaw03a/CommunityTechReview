@@ -48,11 +48,11 @@ export function SessionCard() {
     reader.readAsDataURL(file);
   }
 
-  function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setStatus("");
-    const result = updateCurrentUser({ name, username, avatarUrl });
+    const result = await updateCurrentUser({ name, username, avatarUrl });
     if (!result.ok) {
       setError(result.error);
       return;
@@ -101,7 +101,7 @@ export function SessionCard() {
             <p className="mt-1 text-sm font-semibold text-muted">{currentUser.email}</p>
           </div>
         </div>
-        <Button type="button" variant="outline" onClick={logout}>
+        <Button type="button" variant="outline" onClick={() => void logout()}>
           Logout
         </Button>
       </div>
@@ -161,7 +161,7 @@ export function SessionCard() {
             <Label htmlFor="profile-picture">Profile picture</Label>
             <Input id="profile-picture" type="file" accept="image/*" onChange={handleAvatarChange} />
             <p className="text-xs font-semibold text-muted">
-              Stored locally in this browser. Use a small square image for best results.
+              Saved with your account. Use a small square image for best results.
             </p>
             {avatarUrl ? (
               <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => setAvatarUrl("")}>

@@ -45,6 +45,23 @@ class ReviewRepository {
     this.writeQueue = write.catch(() => undefined);
     return write;
   }
+
+  async updateStatus(id, status) {
+    const write = this.writeQueue.then(async () => {
+      const reviews = await this.list();
+      const index = reviews.findIndex((review) => review.id === id);
+      if (index === -1) return null;
+
+      reviews[index] = { ...reviews[index], status };
+      const temporaryFile = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;
+      await fs.writeFile(temporaryFile, `${JSON.stringify(reviews, null, 2)}\n`, "utf8");
+      await fs.rename(temporaryFile, this.filePath);
+      return reviews[index];
+    });
+
+    this.writeQueue = write.catch(() => undefined);
+    return write;
+  }
 }
 
 module.exports = { ReviewRepository };

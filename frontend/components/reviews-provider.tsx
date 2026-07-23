@@ -17,7 +17,7 @@ type ReviewsContextValue = {
   products: Product[];
   isLoading: boolean;
   error: string | null;
-  createReview: (input: CreateReviewInput) => Promise<Review>;
+  createReview: (input: CreateReviewInput, photo?: File) => Promise<Review>;
   refresh: () => Promise<void>;
   getProductStats: (productSlug: string) => ProductReviewStats;
 };
@@ -55,9 +55,8 @@ export function ReviewsProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const createReview = useCallback(async (input: CreateReviewInput) => {
-    const review = await postReview(input);
-    setReviews((current) => [review, ...current.filter((item) => item.id !== review.id)]);
+  const createReview = useCallback(async (input: CreateReviewInput, photo?: File) => {
+    const review = await postReview(input, photo);
     setError(null);
     return review;
   }, []);

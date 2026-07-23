@@ -3,6 +3,7 @@ const { HttpError } = require("../http");
 
 const CATEGORIES = new Set(["Smartphones", "Laptops", "Audio", "Wearables", "Gaming", "Accessories"]);
 const RATING_FIELDS = ["performance", "camera", "battery", "display", "value"];
+const REVIEW_STATUSES = new Set(["under_review", "published", "violated"]);
 
 function cleanText(value, field, { min = 1, max = 500 } = {}) {
   if (typeof value !== "string") {
@@ -11,6 +12,17 @@ function cleanText(value, field, { min = 1, max = 500 } = {}) {
   const cleaned = value.trim();
   if (cleaned.length < min || cleaned.length > max) {
     throw new HttpError(422, `${field} must be between ${min} and ${max} characters.`);
+  }
+  return cleaned;
+}
+
+function cleanReviewText(value, field) {
+  if (typeof value !== "string") {
+    throw new HttpError(422, `${field} must be text.`);
+  }
+  const cleaned = value.trim();
+  if (!cleaned) {
+    throw new HttpError(422, `${field} is required.`);
   }
   return cleaned;
 }
@@ -25,10 +37,10 @@ function cleanRating(value, field, { allowZero = false } = {}) {
 }
 
 function cleanTags(value, field) {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 5) {
-    throw new HttpError(422, `${field} must contain between 1 and 5 items.`);
+  if (!Array.isArray(value) || value.length < 1) {
+    throw new HttpError(422, `${field} must contain at least one item.`);
   }
-  return value.map((item, index) => cleanText(item, `${field}[${index}]`, { max: 80 }));
+  return value.map((item, index) => cleanReviewText(item, `${field}[${index}]`));
 }
 
 class ReviewService {
@@ -39,8 +51,13 @@ class ReviewService {
   }
 
   async list(filters = {}) {
-    const reviews = await this.repository.list();
+    const reviews = (await this.repository.list()).map((review) => ({
+      ...review,
+      status: review.status || "published"
+    }));
     const filtered = reviews.filter((review) => {
+      if (filters.status && (review.status || "published") !== filters.status) return false;
+      if (filters.userId && review.userId !== filters.userId) return false;
       if (filters.productSlug && review.productSlug !== filters.productSlug) return false;
       if (filters.username && review.username !== filters.username) return false;
       if (filters.category && review.category !== filters.category) return false;
@@ -51,9 +68,12 @@ class ReviewService {
     return limit ? filtered.slice(0, limit) : filtered;
   }
 
-  async get(id) {
-    const review = await this.repository.findById(id);
-    if (!review) throw new HttpError(404, "Review not found.");
+  async get(id, filters = {}) {
+    const storedReview = await this.repository.findById(id);
+    const review = storedReview ? { ...storedReview, status: storedReview.status || "published" } : null;
+    if (!review || (filters.status && (review.status || "published") !== filters.status)) {
+      throw new HttpError(404, "Review not found.");
+    }
     return review;
   }
 
@@ -77,14 +97,15 @@ class ReviewService {
 
     const review = {
       id: `review-${this.createId()}`,
+      status: "under_review",
       userId: cleanText(input.userId, "userId", { max: 120 }),
       productSlug: cleanText(input.productSlug, "productSlug", { max: 140 }),
       productName: cleanText(input.productName, "productName", { max: 160 }),
       username: cleanText(input.username, "username", { max: 80 }),
       rating: cleanRating(input.rating, "rating"),
       categoryRatings,
-      title: cleanText(input.title, "title", { min: 8, max: 180 }),
-      body: cleanText(input.body, "body", { min: 40, max: 5000 }),
+      title: cleanReviewText(input.title, "title"),
+      body: cleanReviewText(input.body, "body"),
       pros: cleanTags(input.pros, "pros"),
       cons: cleanTags(input.cons, "cons"),
       date: this.now().toISOString(),
@@ -93,6 +114,16 @@ class ReviewService {
     };
 
     return this.repository.create(review);
+  }
+
+  async moderate(id, status) {
+    if (!REVIEW_STATUSES.has(status)) {
+      throw new HttpError(422, "status must be under_review, published, or violated.");
+    }
+
+    const review = await this.repository.updateStatus(id, status);
+    if (!review) throw new HttpError(404, "Review not found.");
+    return review;
   }
 }
 

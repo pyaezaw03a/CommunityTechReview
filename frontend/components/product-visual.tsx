@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 import type { Product } from "@/data/domain";
 
@@ -5,6 +7,8 @@ type ProductVisualProps = {
   category?: string;
   accent?: "signal" | "olive" | "peach" | "ink";
   className?: string;
+  photoUrl?: string;
+  productName?: string;
 };
 
 const accentClasses = {
@@ -14,9 +18,30 @@ const accentClasses = {
   ink: "bg-ink"
 };
 
-export function ProductGlyph({ category = "Smartphones", accent = "signal", className }: ProductVisualProps) {
+export function ProductGlyph({
+  category = "Smartphones",
+  accent = "signal",
+  className,
+  photoUrl,
+  productName = "Reviewed product"
+}: ProductVisualProps) {
   const accentClass = accentClasses[accent];
   const shell = cn("relative h-28 w-full overflow-hidden border border-ink bg-paper technical-grid", className);
+
+  if (photoUrl) {
+    return (
+      <div className={cn(shell, "bg-white")}>
+        <Image
+          src={photoUrl}
+          alt={productName}
+          fill
+          unoptimized
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className="object-cover"
+        />
+      </div>
+    );
+  }
 
   if (category === "Laptops") {
     return (

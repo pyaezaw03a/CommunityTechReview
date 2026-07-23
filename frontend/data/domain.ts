@@ -2,6 +2,8 @@ export const categories = ["Smartphones", "Laptops", "Audio", "Wearables", "Gami
 
 export type Category = (typeof categories)[number];
 export type Accent = "signal" | "olive" | "peach" | "ink";
+export const reviewStatuses = ["under_review", "published", "violated"] as const;
+export type ReviewStatus = (typeof reviewStatuses)[number];
 
 export type Product = {
   slug: string;
@@ -13,10 +15,12 @@ export type Product = {
   trend: string;
   tags: string[];
   accent: Accent;
+  photoUrl?: string;
 };
 
 export type Review = {
   id: string;
+  status: ReviewStatus;
   userId: string;
   productSlug: string;
   productName: string;
@@ -36,6 +40,7 @@ export type Review = {
   date: string;
   ownership: string;
   category: Category;
+  photoUrl?: string;
 };
 
-export type CreateReviewInput = Omit<Review, "id" | "date">;
+export type CreateReviewInput = Omit<Review, "id" | "date" | "status" | "photoUrl">;

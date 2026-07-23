@@ -31,7 +31,8 @@ export function buildProductsFromReviews(reviews: Review[]): Product[] {
       summary: latest.body,
       trend: productReviews.length === 1 ? "1 User Review" : `${productReviews.length} User Reviews`,
       tags: [latest.productName, latest.category],
-      accent: categoryAccents[latest.category]
+      accent: categoryAccents[latest.category],
+      photoUrl: productReviews.find((review) => review.photoUrl)?.photoUrl
     };
   });
 }

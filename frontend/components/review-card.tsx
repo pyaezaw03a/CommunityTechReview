@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ThumbsUp } from "lucide-react";
 
@@ -7,6 +8,7 @@ import type { Review } from "@/data/domain";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RatingPill } from "@/components/rating";
+import { ReviewStatusBadge } from "@/components/review-status-badge";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { storageKeys } from "@/lib/storage-keys";
 import { getInitials } from "@/lib/utils";
@@ -35,7 +37,10 @@ export function ReviewCard({ review }: { review: Review }) {
               </p>
             </div>
           </div>
-          <RatingPill rating={review.rating} />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ReviewStatusBadge status={review.status} />
+            <RatingPill rating={review.rating} />
+          </div>
         </div>
         <div>
           <span className="text-xs font-black uppercase text-signal">{review.productName}</span>
@@ -44,6 +49,18 @@ export function ReviewCard({ review }: { review: Review }) {
           </Link>
           <p className="mt-3 text-sm leading-6 text-muted">{review.body}</p>
         </div>
+        {review.photoUrl ? (
+          <div className="relative h-64 w-full overflow-hidden border border-ink bg-paper sm:h-80">
+            <Image
+              src={review.photoUrl}
+              alt={`${review.productName} uploaded by @${review.username}`}
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 760px"
+              className="object-cover"
+            />
+          </div>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           <TagGroup label="Pros" tags={review.pros} variant="olive" />
           <TagGroup label="Cons" tags={review.cons} variant="peach" />

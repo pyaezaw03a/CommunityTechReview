@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Bookmark, MessageSquare, PenLine, type LucideIcon } from "lucide-react";
+import { Bookmark, FileClock, MessageSquare, PenLine, type LucideIcon } from "lucide-react";
 
 import { SessionCard } from "@/components/auth/session-card";
+import { UserPosts } from "@/components/auth/user-posts";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/section-header";
 
@@ -19,11 +20,13 @@ export default function AccountPage() {
         copy="Manage your account, profile, and session settings."
       />
       <SessionCard />
-      <section className="grid gap-4 md:grid-cols-3">
-        <AccountAction href="/submit-review" icon={PenLine} title="Write a Review" copy="Publish practical feedback as the signed-in user." />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AccountAction href="/submit-review" icon={PenLine} title="Write a Review" copy="Submit practical feedback for admin review." />
+        <AccountAction href="/account#your-posts" icon={FileClock} title="Your Posts" copy="Check which posts are under review or approved by an admin." />
         <AccountAction href="/saved" icon={Bookmark} title="Saved Products" copy="Review the gadgets you saved in this browser." />
         <AccountAction href="/community" icon={MessageSquare} title="Community" copy="Browse reviews created by community members." />
       </section>
+      <UserPosts />
     </div>
   );
 }

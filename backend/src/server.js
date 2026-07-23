@@ -5,7 +5,11 @@ const { ReviewService } = require("./reviews/review-service");
 
 const repository = new ReviewRepository(config.reviewsFile);
 const reviewService = new ReviewService(repository);
-const server = createApp({ reviewService, allowedOrigin: config.allowedOrigin });
+const server = createApp({
+  reviewService,
+  allowedOrigin: config.allowedOrigin,
+  adminReviewCode: config.adminReviewCode
+});
 
 server.listen(config.port, () => {
   console.log(`GadgetPulse backend running at http://localhost:${config.port}`);

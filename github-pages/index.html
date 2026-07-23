@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="GadgetPulse community reviews—real ownership experiences with no demo data."
+    />
+    <meta name="theme-color" content="#ed1804" />
+    <title>GadgetPulse — Real Community Reviews</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-reviews-api="">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="GadgetPulse home">
+        <span class="brand-mark" aria-hidden="true">GP</span>
+        <span>
+          <strong>GadgetPulse</strong>
+          <small>Real Feedback</small>
+        </span>
+      </a>
+      <a class="source-link" href="https://github.com/vick01a/community_project">View source</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Community Review Lab</p>
+          <h1>Know before you buy.</h1>
+          <p class="lede">
+            Honest gadget reviews built only from real community submissions. No seeded accounts,
+            no sample reviews, and no invented product scores.
+          </p>
+          <a class="primary-link" href="#community-reviews">Explore real reviews</a>
+        </div>
+        <div class="hero-panel" aria-label="GadgetPulse review principles">
+          <p class="panel-label">The GadgetPulse standard</p>
+          <div class="principle">
+            <span>01</span>
+            <strong>Real submissions only</strong>
+          </div>
+          <div class="principle">
+            <span>02</span>
+            <strong>Empty data stays hidden</strong>
+          </div>
+          <div class="principle">
+            <span>03</span>
+            <strong>Ownership context matters</strong>
+          </div>
+        </div>
+      </section>
+
+      <section id="community-reviews" class="reviews-section" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Live community data</p>
+            <h2>Latest ownership feedback</h2>
+          </div>
+          <div class="summary" aria-label="Review summary">
+            <span><strong id="review-count">0</strong> reviews</span>
+            <span><strong id="average-rating">0.0</strong> average</span>
+          </div>
+        </div>
+        <div id="review-list" class="review-grid"></div>
+      </section>
+    </main>
+
+    <footer>
+      <span>GadgetPulse</span>
+      <span>Real feedback. Better tech choices.</span>
+    </footer>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>

@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ReviewsProvider } from "@/components/reviews-provider";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { SiteChrome } from "@/components/site-chrome";
 
 export const metadata: Metadata = {
   title: {
@@ -21,9 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <AuthProvider>
           <ReviewsProvider>
-            <SiteHeader />
-            <main>{children}</main>
-            <SiteFooter />
+            <SiteChrome>{children}</SiteChrome>
           </ReviewsProvider>
         </AuthProvider>
       </body>
