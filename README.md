@@ -1,12 +1,11 @@
-# GadgetPulse Workspace
+# GadgetPulse
 
-Clean project layout with frontend and backend separated.
+Community gadget reviews with persistent accounts, moderated submissions, and product-photo uploads.
 
 ## Folder Structure
 
 ```text
-frontend/   Next.js app, D1 database, R2 uploads, API routes, and UI
-backend/    Legacy dependency-free review service retained for API tests
+interface/   Next.js app, D1 database, R2 uploads, API routes, and UI
 ```
 
 ## Run The App
@@ -22,23 +21,16 @@ Open:
 http://localhost:3000
 ```
 
-This starts the complete frontend application at `http://localhost:3000`. Its
+This starts the complete interface application at `http://localhost:3000`. Its
 same-origin API routes use local D1 and R2 development storage.
-
-To run either service separately:
-
-```bash
-npm run frontend:dev
-npm run backend:dev
-```
 
 ## Useful Commands
 
 ```bash
-npm run frontend:lint
-npm run frontend:build
-npm test
-npm run backend:start
+npm run lint
+npm run build
+npm run start
+npm run db:generate
 ```
 
 ## Notes

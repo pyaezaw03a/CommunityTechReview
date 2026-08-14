@@ -1,5 +1,7 @@
+.DS_Store
 .next/
 node_modules/
+.tarball-cache/
 .pnpm-store/
 .wrangler/
 dist/
