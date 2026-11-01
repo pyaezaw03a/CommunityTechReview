@@ -10,6 +10,7 @@
     "build": "npm --workspace interface run build",
     "lint": "npm --workspace interface run lint",
     "start": "npm --workspace interface run start",
-    "db:generate": "npm --workspace interface run db:generate"
+    "db:generate": "npm --workspace interface run db:generate",
+    "db:import": "npm --workspace interface run db:import"
   }
 }

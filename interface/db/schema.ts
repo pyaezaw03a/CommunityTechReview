@@ -1,18 +1,18 @@
-import { index, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { double, index, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 import { reviewStatuses } from "@/data/domain";
 
-export const accounts = sqliteTable(
+export const accounts = mysqlTable(
   "accounts",
   {
-    id: text("id").primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     name: text("name").notNull(),
-    username: text("username").notNull(),
-    email: text("email").notNull(),
+    username: varchar("username", { length: 64 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
     passwordHash: text("password_hash").notNull(),
-    role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
+    role: varchar("role", { length: 16, enum: ["user", "admin"] }).notNull().default("user"),
     avatarUrl: text("avatar_url"),
-    createdAt: text("created_at").notNull()
+    createdAt: varchar("created_at", { length: 64 }).notNull()
   },
   (table) => [
     uniqueIndex("accounts_username_unique").on(table.username),
@@ -22,15 +22,15 @@ export const accounts = sqliteTable(
   ]
 );
 
-export const sessions = sqliteTable(
+export const sessions = mysqlTable(
   "sessions",
   {
-    id: text("id").primaryKey(),
-    accountId: text("account_id")
+    id: varchar("id", { length: 128 }).primaryKey(),
+    accountId: varchar("account_id", { length: 128 })
       .notNull()
       .references(() => accounts.id, { onDelete: "cascade" }),
-    createdAt: text("created_at").notNull(),
-    expiresAt: text("expires_at").notNull()
+    createdAt: varchar("created_at", { length: 64 }).notNull(),
+    expiresAt: varchar("expires_at", { length: 64 }).notNull()
   },
   (table) => [
     index("sessions_account_id_idx").on(table.accountId),
@@ -38,28 +38,28 @@ export const sessions = sqliteTable(
   ]
 );
 
-export const reviews = sqliteTable(
+export const reviews = mysqlTable(
   "reviews",
   {
-    id: text("id").primaryKey(),
-    status: text("status", { enum: reviewStatuses }).notNull().default("under_review"),
-    userId: text("user_id").notNull(),
-    productSlug: text("product_slug").notNull(),
-    productName: text("product_name").notNull(),
-    username: text("username").notNull(),
-    rating: real("rating").notNull(),
+    id: varchar("id", { length: 128 }).primaryKey(),
+    status: varchar("status", { length: 32, enum: reviewStatuses }).notNull().default("under_review"),
+    userId: varchar("user_id", { length: 128 }).notNull(),
+    productSlug: varchar("product_slug", { length: 255 }).notNull(),
+    productName: varchar("product_name", { length: 255 }).notNull(),
+    username: varchar("username", { length: 64 }).notNull(),
+    rating: double("rating").notNull(),
     categoryRatings: text("category_ratings").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
     pros: text("pros").notNull(),
     cons: text("cons").notNull(),
-    date: text("date").notNull(),
-    ownership: text("ownership").notNull(),
-    category: text("category").notNull(),
+    date: varchar("date", { length: 64 }).notNull(),
+    ownership: varchar("ownership", { length: 64 }).notNull(),
+    category: varchar("category", { length: 64 }).notNull(),
     photoKey: text("photo_key"),
     photoName: text("photo_name"),
     photoType: text("photo_type"),
-    photoSize: real("photo_size")
+    photoSize: double("photo_size")
   },
   (table) => [
     index("reviews_status_idx").on(table.status),

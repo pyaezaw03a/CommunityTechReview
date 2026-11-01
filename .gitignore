@@ -11,6 +11,8 @@ build/
 !frontend/build/**
 .env
 .env*.local
+interface/uploads/*
+!interface/uploads/.gitkeep
 *.log
 *.tsbuildinfo
 pnpm-debug.log*

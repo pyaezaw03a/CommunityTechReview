@@ -1,5 +1,5 @@
 import { getSessionAccount } from "@/db/accounts";
-import { getUploadsBucket } from "@/db/database";
+import { getUpload } from "@/db/uploads";
 import { getReviewPhoto } from "@/db/reviews";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -16,14 +16,13 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     }
   }
 
-  const object = await getUploadsBucket().get(photo.photo_key);
+  const object = await getUpload(photo.photo_key);
   if (!object) {
     return Response.json({ error: { message: "Product photo not found." } }, { status: 404 });
   }
 
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("Content-Type", photo.photo_type || headers.get("Content-Type") || "application/octet-stream");
+  headers.set("Content-Type", photo.photo_type || object.contentType || "application/octet-stream");
   headers.set(
     "Cache-Control",
     photo.status === "published" ? "public, max-age=86400, stale-while-revalidate=604800" : "private, no-store"

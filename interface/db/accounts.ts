@@ -1,5 +1,3 @@
-import { env } from "cloudflare:workers";
-
 import { getDatabase } from "@/db/database";
 import {
   adminAccessCode,
@@ -109,8 +107,7 @@ function createToken() {
 }
 
 function getAdminCode() {
-  const runtimeEnv = env as unknown as { ADMIN_REVIEW_CODE?: string };
-  return runtimeEnv.ADMIN_REVIEW_CODE?.trim() || adminAccessCode;
+  return process.env.ADMIN_REVIEW_CODE?.trim() || adminAccessCode;
 }
 
 function cleanUsername(value: string) {

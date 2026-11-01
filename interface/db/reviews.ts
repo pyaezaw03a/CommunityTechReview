@@ -1,5 +1,6 @@
 import type { CreateReviewInput, Review, ReviewStatus } from "@/data/domain";
-import { getDatabase, getUploadsBucket } from "@/db/database";
+import { getDatabase } from "@/db/database";
+import { deleteUpload, putUpload } from "@/db/uploads";
 
 type ReviewRow = {
   id: string;
@@ -106,13 +107,7 @@ export async function createReview(input: CreateReviewInput, photo?: File): Prom
   };
 
   if (photo && photoKey) {
-    await getUploadsBucket().put(photoKey, photo.stream(), {
-      httpMetadata: { contentType: photo.type },
-      customMetadata: {
-        originalName: photo.name,
-        reviewId: review.id
-      }
-    });
+    await putUpload(photoKey, photo.stream(), { contentType: photo.type });
   }
 
   try {
@@ -147,7 +142,7 @@ export async function createReview(input: CreateReviewInput, photo?: File): Prom
       )
       .run();
   } catch (error) {
-    if (photoKey) await getUploadsBucket().delete(photoKey).catch(() => undefined);
+    if (photoKey) await deleteUpload(photoKey).catch(() => undefined);
     throw error;
   }
 
@@ -167,13 +162,7 @@ export async function updateReview(id: string, input: CreateReviewInput, photo?:
 
   const photoKey = photo ? `reviews/${id}/${crypto.randomUUID()}` : null;
   if (photo && photoKey) {
-    await getUploadsBucket().put(photoKey, photo.stream(), {
-      httpMetadata: { contentType: photo.type },
-      customMetadata: {
-        originalName: photo.name,
-        reviewId: id
-      }
-    });
+    await putUpload(photoKey, photo.stream(), { contentType: photo.type });
   }
 
   try {
@@ -244,12 +233,12 @@ export async function updateReview(id: string, input: CreateReviewInput, photo?:
     const result = await statement.bind(...values).run();
     if (!result.meta.changes) return null;
   } catch (error) {
-    if (photoKey) await getUploadsBucket().delete(photoKey).catch(() => undefined);
+    if (photoKey) await deleteUpload(photoKey).catch(() => undefined);
     throw error;
   }
 
   if (photoKey && existing.photo_key) {
-    await getUploadsBucket().delete(existing.photo_key).catch(() => undefined);
+    await deleteUpload(existing.photo_key).catch(() => undefined);
   }
 
   const row = await database.prepare("SELECT * FROM reviews WHERE id = ?").bind(id).first<ReviewRow>();
